@@ -17,8 +17,6 @@
 
 #define MODULE_TAG "jpegd_parser"
 
-#define RK3399_TEST 1
-
 #include "mpp_env.h"
 #include "mpp_mem.h"
 #include "mpp_bitread.h"
@@ -929,8 +927,10 @@ jpegd_split_frame(RK_U8 *src, RK_U32 src_size,
         mpp_err_f("NULL pointer or wrong src_size(%d)", src_size);
         return MPP_ERR_NULL_PTR;
     }
+    RK_U8 *end;
     RK_U8 *tmp;
     RK_U32 str_size = (src_size + 255) & (~255);
+    end = dst + src_size;
 
     if (src[6] == 0x41 && src[7] == 0x56 && src[8] == 0x49 && src[9] == 0x31) {
         //distinguish 310 from 210 camera
@@ -955,52 +955,9 @@ jpegd_split_frame(RK_U8 *src, RK_U32 src_size,
             memset(dst, 0, src_size - copy_len);
         *dst_size = copy_len;
     } else {
-#if RK3399_TEST
-        {
-            RK_S32 start_code;
-            RK_U8 *buf_ptr = src;
-            RK_U8 *buf_end = src + src_size;
-            RK_U8 found = 0;
-            RK_U32 copy_length = 1;
-            RK_U32 stride_length = 0;
-
-            if (src_size < 4 || *buf_ptr != 0xFF || *(buf_ptr + 1) != SOI) {
-                // not jpeg
-                ret = MPP_ERR_STREAM;
-            }
-
-            while (buf_ptr < buf_end) {
-                if (*buf_ptr == 0xFF && *(buf_ptr + 1) == EOI) {
-                    found = 1;
-                    copy_length++;
-                    break;
-                } else {
-                    buf_ptr++;
-                    copy_length++;
-                }
-            }
-            if (found) {
-                //if (dst)
-                //     mpp_free(dst);
-                // dst = NULL;
-
-                // dst = mpp_calloc(RK_U8, copy_length + 1024);
-
-                memcpy(dst, src, copy_length);
-                stride_length = MPP_ALIGN(copy_length, 256);
-                memset(dst + copy_length, 0, str_size - src_size);
-                *dst_size = copy_length;
-            } else {
-                memcpy(dst, src, src_size);
-                memset(dst + src_size, 0, str_size - src_size);
-                *dst_size = src_size;
-            }
-        }
-#else
         memcpy(dst, src, src_size);
         memset(dst + src_size, 0, str_size - src_size);
         *dst_size = src_size;
-#endif
     }
 
     jpegd_dbg_func("exit\n");
@@ -1075,11 +1032,7 @@ static MPP_RET jpegd_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
     else
         jpegd_handle_stream(base, pkt_length, JpegCtx->recv_buffer, &copy_length);
 
-#if RK3399_TEST
-    pos += copy_length;
-#else
     pos += pkt_length;
-#endif
     mpp_packet_set_pos(pkt, pos);
     if (copy_length != pkt_length) {
         jpegd_dbg_parser("packet prepare, pkt_length:%d, copy_length:%d\n",
@@ -1105,20 +1058,11 @@ static MPP_RET jpegd_prepare(void *ctx, MppPacket pkt, HalDecTask *task)
 
     if (JpegCtx->copy_flag) {
         mpp_packet_set_data(input_packet, JpegCtx->recv_buffer);
-#if RK3399_TEST
-        mpp_packet_set_size(input_packet, copy_length);
-        mpp_packet_set_length(input_packet, copy_length);
-#else
         mpp_packet_set_size(input_packet, pkt_length);
         mpp_packet_set_length(input_packet, pkt_length);
-#endif
     }
 
-#if RK3399_TEST
-    JpegCtx->streamLength = copy_length;
-#else
     JpegCtx->streamLength = pkt_length;
-#endif
     task->input_packet = input_packet;
     task->valid = 1;
     jpegd_dbg_parser("input_packet:%p, recv_buffer:%p, pkt_length:%d",
