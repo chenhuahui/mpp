@@ -1,3 +1,10 @@
+mpp (20191118-1) stable; urgency=critical
+
+  * HACK: jpegd_parser: Use pkt length instead of size
+    ...
+
+ -- Caesar Wang <wxt@rock-chips.com>  Mon, 18 Mov 2019 17:54:00 +0800
+
 mpp (20191031-1) stable; urgency=critical
 
   * [jpegd]: remove tailing 0xff patch from parser
