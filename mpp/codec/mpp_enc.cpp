@@ -325,7 +325,6 @@ void *mpp_enc_control_thread(void *data)
          * final user will release the mpp_frame they had input
          */
         mpp_task_meta_set_frame(task_in, KEY_INPUT_FRAME, frame);
-        mpp_port_enqueue(input, task_in);
 
         // send finished task to output port
         ret = mpp_port_dequeue(output, &task_out);
@@ -347,6 +346,8 @@ void *mpp_enc_control_thread(void *data)
         } else {
             mpp_packet_deinit(&packet);
         }
+
+        mpp_port_enqueue(input, task_in);
 
         task_in = NULL;
         task_out = NULL;
